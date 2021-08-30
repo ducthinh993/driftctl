@@ -55,6 +55,8 @@ var supportedTypes = map[string]struct{}{
 	"aws_sqs_queue_policy":                  {},
 	"aws_subnet":                            {},
 	"aws_vpc":                               {},
+	"aws_appautoscaling_target":             {},
+	"aws_appautoscaling_policy":             {},
 
 	"github_branch_protection": {},
 	"github_membership":        {},
