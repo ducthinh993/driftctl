@@ -50,4 +50,5 @@ func InitResourcesMetadata(resourceSchemaRepository resource.SchemaRepositoryInt
 	initAwsSecurityGroupMetaData(resourceSchemaRepository)
 	initAwsAppAutoscalingTargetMetaData(resourceSchemaRepository)
 	initAwsAppAutoscalingPolicyMetaData(resourceSchemaRepository)
+	initAwsAppAutoscalingScheduledActionMetaData(resourceSchemaRepository)
 }

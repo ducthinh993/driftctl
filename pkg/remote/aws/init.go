@@ -175,6 +175,8 @@ func Init(version string, alerter *alerter.Alerter,
 	remoteLibrary.AddDetailsFetcher(aws.AwsAppAutoscalingTargetResourceType, common.NewGenericDetailsFetcher(aws.AwsAppAutoscalingTargetResourceType, provider, deserializer))
 	remoteLibrary.AddEnumerator(NewAppAutoscalingPolicyEnumerator(appAutoScalingRepository, factory))
 	remoteLibrary.AddDetailsFetcher(aws.AwsAppAutoscalingPolicyResourceType, common.NewGenericDetailsFetcher(aws.AwsAppAutoscalingPolicyResourceType, provider, deserializer))
+	remoteLibrary.AddEnumerator(NewAppAutoscalingScheduledActionEnumerator(appAutoScalingRepository, factory))
+	remoteLibrary.AddDetailsFetcher(aws.AwsAppAutoscalingScheduledActionResourceType, common.NewGenericDetailsFetcher(aws.AwsAppAutoscalingScheduledActionResourceType, provider, deserializer))
 
 	err = resourceSchemaRepository.Init(terraform.AWS, version, provider.Schema())
 	if err != nil {
