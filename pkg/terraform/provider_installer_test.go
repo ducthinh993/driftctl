@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/cloudskiff/driftctl/mocks"
@@ -16,7 +17,6 @@ import (
 
 func TestProviderInstallerInstallDoesNotExist(t *testing.T) {
 
-	assert := assert.New(t)
 	fakeTmpHome := t.TempDir()
 
 	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
@@ -35,17 +35,16 @@ func TestProviderInstallerInstallDoesNotExist(t *testing.T) {
 		homeDir:    fakeTmpHome,
 	}
 
-	providerPath, err := installer.Install()
+	providerPath, err := installer.Install("")
 	mockDownloader.AssertExpectations(t)
 
-	assert.Nil(err)
-	assert.Equal(path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
+	assert.Nil(t, err)
+	assert.Equal(t, path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
 
 }
 
 func TestProviderInstallerInstallAlreadyExist(t *testing.T) {
 
-	assert := assert.New(t)
 	fakeTmpHome := t.TempDir()
 	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
 	err := os.MkdirAll(path.Join(fakeTmpHome, expectedSubFolder), 0755)
@@ -71,17 +70,16 @@ func TestProviderInstallerInstallAlreadyExist(t *testing.T) {
 		homeDir:    fakeTmpHome,
 	}
 
-	providerPath, err := installer.Install()
+	providerPath, err := installer.Install("")
 	mockDownloader.AssertExpectations(t)
 
-	assert.Nil(err)
-	assert.Equal(path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
+	assert.Nil(t, err)
+	assert.Equal(t, path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
 
 }
 
 func TestProviderInstallerInstallAlreadyExistButIsDirectory(t *testing.T) {
 
-	assert := assert.New(t)
 	fakeTmpHome := t.TempDir()
 	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
 
@@ -104,12 +102,12 @@ func TestProviderInstallerInstallAlreadyExistButIsDirectory(t *testing.T) {
 		homeDir:    fakeTmpHome,
 	}
 
-	providerPath, err := installer.Install()
+	providerPath, err := installer.Install("")
 	mockDownloader.AssertExpectations(t)
 
-	assert.Empty(providerPath)
-	assert.NotNil(err)
-	assert.Equal(
+	assert.Empty(t, providerPath)
+	assert.NotNil(t, err)
+	assert.Equal(t,
 		fmt.Sprintf(
 			"found directory instead of provider binary in %s",
 			invalidDirPath,
@@ -122,7 +120,6 @@ func TestProviderInstallerInstallAlreadyExistButIsDirectory(t *testing.T) {
 // Ensure that if a provider exists with a postfix (_x5) we properly detect it
 func TestProviderInstallerInstallPostfixIsHandler(t *testing.T) {
 
-	assert := assert.New(t)
 	fakeTmpHome := t.TempDir()
 	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
 	err := os.MkdirAll(path.Join(fakeTmpHome, expectedSubFolder), 0755)
@@ -148,17 +145,15 @@ func TestProviderInstallerInstallPostfixIsHandler(t *testing.T) {
 		homeDir:    fakeTmpHome,
 	}
 
-	providerPath, err := installer.Install()
+	providerPath, err := installer.Install("")
 	mockDownloader.AssertExpectations(t)
 
-	assert.Nil(err)
-	assert.Equal(path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()+"_x5"), providerPath)
+	assert.Nil(t, err)
+	assert.Equal(t, path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()+"_x5"), providerPath)
 
 }
 
 func TestProviderInstallerVersionDoesNotExist(t *testing.T) {
-
-	assert := assert.New(t)
 
 	config := ProviderConfig{
 		Key:     "aws",
@@ -173,14 +168,13 @@ func TestProviderInstallerVersionDoesNotExist(t *testing.T) {
 		config:     config,
 	}
 
-	_, err := installer.Install()
+	_, err := installer.Install("")
 
-	assert.Equal("Provider version 666.666.666 does not exist", err.Error())
+	assert.Equal(t, "Provider version 666.666.666 does not exist", err.Error())
 }
 
 func TestProviderInstallerWithConfigDirectory(t *testing.T) {
 
-	assert := assert.New(t)
 	fakeTmpHome := t.TempDir()
 
 	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
@@ -194,13 +188,39 @@ func TestProviderInstallerWithConfigDirectory(t *testing.T) {
 	mockDownloader := mocks.ProviderDownloaderInterface{}
 	mockDownloader.On("Download", config.GetDownloadUrl(), path.Join(fakeTmpHome, expectedSubFolder)).Return(nil)
 
-	installer, _ := NewProviderInstaller(config)
+	installer := NewProviderInstaller(config)
 	installer.downloader = &mockDownloader
 
-	providerPath, err := installer.Install()
+	providerPath, err := installer.Install("")
 	mockDownloader.AssertExpectations(t)
 
-	assert.Nil(err)
-	assert.Equal(path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
+	assert.Nil(t, err)
+	assert.Equal(t, path.Join(fakeTmpHome, expectedSubFolder, config.GetBinaryName()), providerPath)
+}
 
+func TestProviderInstallerSpecifiedVersion(t *testing.T) {
+
+	fakeTmpHome := t.TempDir()
+
+	config := ProviderConfig{
+		Key:       "aws",
+		Version:   "3.19.0",
+		ConfigDir: fakeTmpHome,
+	}
+
+	expectedSubFolder := fmt.Sprintf("/.driftctl/plugins/%s_%s", runtime.GOOS, runtime.GOARCH)
+	expectedDownloadURL := strings.ReplaceAll(config.GetDownloadUrl(), config.Version, "3.47.0")
+	expectedBinaryName := strings.ReplaceAll(config.GetBinaryName(), config.Version, "3.47.0")
+
+	mockDownloader := mocks.ProviderDownloaderInterface{}
+	mockDownloader.On("Download", expectedDownloadURL, path.Join(fakeTmpHome, expectedSubFolder)).Return(nil)
+
+	installer := NewProviderInstaller(config)
+	installer.downloader = &mockDownloader
+
+	providerPath, err := installer.Install("3.47.0")
+	mockDownloader.AssertExpectations(t)
+
+	assert.Nil(t, err)
+	assert.Equal(t, path.Join(fakeTmpHome, expectedSubFolder, expectedBinaryName), providerPath)
 }

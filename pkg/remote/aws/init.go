@@ -25,9 +25,6 @@ func Init(version string, alerter *alerter.Alerter,
 	factory resource.ResourceFactory,
 	configDir string) error {
 
-	if version == "" {
-		version = "3.19.0"
-	}
 	provider, err := NewAWSTerraformProvider(version, progress, configDir)
 	if err != nil {
 		return err
@@ -170,7 +167,7 @@ func Init(version string, alerter *alerter.Alerter,
 	remoteLibrary.AddEnumerator(NewECRRepositoryEnumerator(ecrRepository, factory))
 	remoteLibrary.AddDetailsFetcher(aws.AwsEcrRepositoryResourceType, common.NewGenericDetailsFetcher(aws.AwsEcrRepositoryResourceType, provider, deserializer))
 
-	err = resourceSchemaRepository.Init(terraform.AWS, version, provider.Schema())
+	err = resourceSchemaRepository.Init(terraform.AWS, provider.Version(), provider.Schema())
 	if err != nil {
 		return err
 	}

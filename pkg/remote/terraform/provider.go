@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudskiff/driftctl/pkg/output"
+	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/eapache/go-resiliency/retrier"
 	"github.com/hashicorp/terraform/plugin"
@@ -24,6 +25,8 @@ import (
 	tf "github.com/cloudskiff/driftctl/pkg/terraform"
 )
 
+const LockFileName = ".terraform.lock.hcl"
+
 // "alias" in these struct are a way to namespace gRPC clients.
 // For example, if we need to read S3 bucket from multiple AWS region,
 // we'll have an alias per region, and the alias IS the region itself.
@@ -31,6 +34,7 @@ import (
 type TerraformProviderConfig struct {
 	Name              string
 	DefaultAlias      string
+	Addr              *addrs.Provider
 	GetProviderConfig func(alias string) interface{}
 }
 
@@ -88,8 +92,16 @@ func (p *TerraformProvider) Runner() *parallel.ParallelRunner {
 }
 
 func (p *TerraformProvider) configure(alias string) error {
+	var version string
+	lockFile, diags := LoadLocksFromFile(LockFileName)
 
-	providerPath, err := p.providerInstaller.Install()
+	if diags == nil {
+		if provider := lockFile.Provider(p.Config.Addr); provider != nil {
+			version = provider.Version
+		}
+	}
+
+	providerPath, err := p.providerInstaller.Install(version)
 	if err != nil {
 		return err
 	}

@@ -26,15 +26,19 @@ type ProviderInstaller struct {
 	homeDir    string
 }
 
-func NewProviderInstaller(config ProviderConfig) (*ProviderInstaller, error) {
+func NewProviderInstaller(config ProviderConfig) *ProviderInstaller {
 	return &ProviderInstaller{
 		NewProviderDownloader(),
 		config,
 		config.ConfigDir,
-	}, nil
+	}
 }
 
-func (p *ProviderInstaller) Install() (string, error) {
+func (p *ProviderInstaller) Install(version string) (string, error) {
+	if version != "" {
+		p.config.Version = version
+	}
+
 	providerDir := p.getProviderDirectory()
 	providerPath := p.getBinaryPath()
 

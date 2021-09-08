@@ -7,12 +7,14 @@ import (
 	"github.com/cloudskiff/driftctl/pkg/remote/azurerm/common"
 	"github.com/cloudskiff/driftctl/pkg/remote/terraform"
 	tf "github.com/cloudskiff/driftctl/pkg/terraform"
+	"github.com/hashicorp/terraform/addrs"
 )
 
 type AzureTerraformProvider struct {
 	*terraform.TerraformProvider
 	name    string
 	version string
+	address *addrs.Provider
 }
 
 func NewAzureTerraformProvider(version string, progress output.Progress, configDir string) (*AzureTerraformProvider, error) {
@@ -20,19 +22,22 @@ func NewAzureTerraformProvider(version string, progress output.Progress, configD
 	p := &AzureTerraformProvider{
 		version: version,
 		name:    tf.AZURE,
+		address: &addrs.Provider{
+			Hostname:  "registry.terraform.io",
+			Namespace: "hashicorp",
+			Type:      "azurerm",
+		},
 	}
 	// Use TerraformProviderInstaller to retrieve the provider if needed
-	installer, err := tf.NewProviderInstaller(tf.ProviderConfig{
+	installer := tf.NewProviderInstaller(tf.ProviderConfig{
 		Key:       p.name,
 		Version:   version,
 		ConfigDir: configDir,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	tfProvider, err := terraform.NewTerraformProvider(installer, terraform.TerraformProviderConfig{
 		Name: p.name,
+		Addr: p.Address(),
 	}, progress)
 	if err != nil {
 		return nil, err
@@ -56,4 +61,8 @@ func (p *AzureTerraformProvider) Name() string {
 
 func (p *AzureTerraformProvider) Version() string {
 	return p.version
+}
+
+func (p *AzureTerraformProvider) Address() *addrs.Provider {
+	return p.address
 }

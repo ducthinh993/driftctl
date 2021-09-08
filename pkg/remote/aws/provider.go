@@ -2,6 +2,7 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/cloudskiff/driftctl/pkg/output"
 	"github.com/cloudskiff/driftctl/pkg/remote/terraform"
@@ -42,27 +43,34 @@ type AWSTerraformProvider struct {
 	session *session.Session
 	name    string
 	version string
+	address *addrs.Provider
 }
 
 func NewAWSTerraformProvider(version string, progress output.Progress, configDir string) (*AWSTerraformProvider, error) {
+	if version == "" {
+		version = "3.19.0"
+	}
 	p := &AWSTerraformProvider{
 		version: version,
 		name:    "aws",
+		address: &addrs.Provider{
+			Hostname:  "registry.terraform.io",
+			Namespace: "hashicorp",
+			Type:      "aws",
+		},
 	}
-	installer, err := tf.NewProviderInstaller(tf.ProviderConfig{
+	installer := tf.NewProviderInstaller(tf.ProviderConfig{
 		Key:       p.name,
 		Version:   version,
 		ConfigDir: configDir,
 	})
-	if err != nil {
-		return nil, err
-	}
 	p.session = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	tfProvider, err := terraform.NewTerraformProvider(installer, terraform.TerraformProviderConfig{
-		Name:         p.name,
+		Name:         p.Name(),
 		DefaultAlias: *p.session.Config.Region,
+		Addr:         p.Address(),
 		GetProviderConfig: func(alias string) interface{} {
 			return awsConfig{
 				Region:     alias,
@@ -77,10 +85,14 @@ func NewAWSTerraformProvider(version string, progress output.Progress, configDir
 	return p, err
 }
 
-func (a *AWSTerraformProvider) Name() string {
-	return a.name
+func (p *AWSTerraformProvider) Name() string {
+	return p.name
 }
 
 func (p *AWSTerraformProvider) Version() string {
 	return p.version
+}
+
+func (p *AWSTerraformProvider) Address() *addrs.Provider {
+	return p.address
 }
