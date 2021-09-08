@@ -18,18 +18,38 @@ type LockFileProvider struct {
 	Version     string   `hcl:"version"`
 }
 
+// Locks is the top-level type representing the information retained in a
+// dependency lock file.
+//
+// Locks and the other types used within it are mutable via various setter
+// methods, but they are not safe for concurrent  modifications, so it's the
+// caller's responsibility to prevent concurrent writes and writes concurrent
+// with reads.
 type Locks struct {
 	providers map[addrs.Provider]*LockFileProvider
 }
 
+// NewLocks constructs and returns a new Locks object that initially contains
+// no locks at all.
 func NewLocks() *Locks {
 	return &Locks{
 		providers: make(map[addrs.Provider]*LockFileProvider),
 	}
 }
 
+// Provider returns the stored lock for the given provider, or nil if that
+// provider currently has no lock.
 func (l *Locks) Provider(addr *addrs.Provider) *LockFileProvider {
 	return l.providers[*addr]
+}
+
+// ProviderIsLockable returns true if the given provider is eligible for
+// version locking.
+//
+// Currently, all providers except builtin and legacy providers are eligible
+// for locking.
+func ProviderIsLockable(addr addrs.Provider) bool {
+	return !(addr.IsBuiltIn() || addr.IsLegacy())
 }
 
 func LoadLocksFromFile(filename string) (*Locks, error) {
@@ -200,8 +220,4 @@ func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute)
 		})
 	}
 	return ver, diags
-}
-
-func ProviderIsLockable(addr addrs.Provider) bool {
-	return !(addr.IsBuiltIn() || addr.IsLegacy())
 }
